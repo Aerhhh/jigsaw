@@ -3,6 +3,7 @@ package net.aerh.imagegenerator.impl;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,9 +12,11 @@ import net.aerh.imagegenerator.Generator;
 import net.aerh.imagegenerator.builder.ClassBuilder;
 import net.aerh.imagegenerator.exception.NbtParseException;
 import net.aerh.imagegenerator.impl.nbt.ComponentsNbtFormatHandler;
-import net.aerh.imagegenerator.impl.nbt.LegacyNbtFormatHandler;
 import net.aerh.imagegenerator.impl.nbt.NbtFormatHandler;
 import net.aerh.imagegenerator.impl.nbt.NbtFormatMetadata;
+import net.aerh.imagegenerator.impl.nbt.PostFlatteningNbtFormatHandler;
+import net.aerh.imagegenerator.impl.nbt.PreFlatteningNbtFormatHandler;
+import net.aerh.imagegenerator.impl.nbt.SnbtParser;
 import net.aerh.imagegenerator.impl.tooltip.MinecraftTooltipGenerator;
 import net.aerh.imagegenerator.parser.text.PlaceholderReverseMapper;
 
@@ -21,18 +24,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Entry point for parsing Minecraft item NBT (JSON or SNBT) into renderable generators.
+ * <p>
+ * Accepts raw NBT input, auto-detects the format version via the registered {@link NbtFormatHandler}
+ * chain, and produces a {@link ParsedNbt} containing the item and tooltip generators needed
+ * to render the item image.
+ */
 @Slf4j
 public class MinecraftNbtParser {
 
     private static final NbtFormatHandler DEFAULT_FORMAT_HANDLER = new DefaultNbtFormatHandler();
 
     private static final List<NbtFormatHandler> FORMAT_HANDLERS = List.of(
-        new ComponentsNbtFormatHandler(),
-        new LegacyNbtFormatHandler()
+        new ComponentsNbtFormatHandler(),       // 1.20.5+ (components key)
+        new PostFlatteningNbtFormatHandler(),   // 1.13-1.20.4 (tag + JSON text component strings)
+        new PreFlatteningNbtFormatHandler()     // pre-1.13 (tag + plain § strings, broadest fallback)
     );
 
+    /**
+     * Parses a raw NBT string (JSON or SNBT) into generators for rendering.
+     *
+     * @param nbt the raw NBT input
+     *
+     * @return the parsed result containing generators, item id, texture, and enchantment state
+     *
+     * @throws NbtParseException if the input cannot be parsed or is missing a required {@code id} field
+     */
     public static ParsedNbt parse(String nbt) {
-        JsonObject jsonObject = JsonParser.parseString(nbt).getAsJsonObject();
+        JsonObject jsonObject = parseToJsonObject(nbt);
         ArrayList<ClassBuilder<? extends Generator>> generators = new ArrayList<>();
 
         if (!jsonObject.has("id")) {
@@ -130,6 +150,44 @@ public class MinecraftNbtParser {
         return new ParsedNbt(generators, base64Texture, parsedItemId, enchanted);
     }
 
+    /**
+     * Parses the input string as either JSON or SNBT, returning a {@link JsonObject}.
+     * Tries JSON first; if that fails, falls back to SNBT parsing.
+     *
+     * @param input the raw NBT string (JSON or SNBT format)
+     *
+     * @return the parsed JSON object
+     *
+     * @throws NbtParseException if neither format can be parsed
+     */
+    private static JsonObject parseToJsonObject(String input) {
+        if (input == null || input.isBlank()) {
+            throw new NbtParseException("NBT input is null or blank");
+        }
+
+        String trimmed = input.trim();
+
+        // Try JSON first
+        try {
+            JsonElement element = JsonParser.parseString(trimmed);
+            if (element.isJsonObject()) {
+                log.debug("Parsed input as JSON");
+                return element.getAsJsonObject();
+            }
+        } catch (JsonSyntaxException e) {
+            log.debug("Input is not valid JSON, attempting SNBT parse: {}", e.getMessage());
+        }
+
+        // Fall back to SNBT
+        try {
+            JsonObject snbtResult = SnbtParser.parse(trimmed);
+            log.debug("Parsed input as SNBT");
+            return snbtResult;
+        } catch (NbtParseException e) {
+            throw new NbtParseException("Input is neither valid JSON nor valid SNBT: " + e.getMessage());
+        }
+    }
+
     private static boolean isPlayerHeadId(String itemId) {
         if (itemId == null || itemId.isBlank()) {
             return false;
@@ -172,6 +230,7 @@ public class MinecraftNbtParser {
         return simpleName.isBlank() ? handler.getClass().getName() : simpleName;
     }
 
+    /** Result of parsing an NBT string, containing everything needed to render the item. */
     @Getter(AccessLevel.PUBLIC)
     @AllArgsConstructor
     public static class ParsedNbt {

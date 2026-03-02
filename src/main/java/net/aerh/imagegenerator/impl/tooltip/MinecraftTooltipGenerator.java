@@ -17,6 +17,7 @@ import net.aerh.imagegenerator.builder.ClassBuilder;
 import net.aerh.imagegenerator.data.Rarity;
 import net.aerh.imagegenerator.exception.GeneratorException;
 import net.aerh.imagegenerator.image.MinecraftTooltip;
+import net.aerh.imagegenerator.impl.nbt.NbtTextComponentUtil;
 import net.aerh.imagegenerator.item.GeneratedObject;
 import net.aerh.imagegenerator.parser.text.RarityFooterParser;
 import net.aerh.imagegenerator.text.ChatFormat;
@@ -240,8 +241,10 @@ public class MinecraftTooltipGenerator implements Generator {
         private void parseComponents(JsonObject components) {
             // Parse minecraft:custom_name component
             if (components.has("minecraft:custom_name")) {
-                JsonObject customName = components.getAsJsonObject("minecraft:custom_name");
-                this.itemName = parseTextComponent(customName);
+                JsonElement customNameElement = components.get("minecraft:custom_name");
+                if (customNameElement != null && customNameElement.isJsonObject()) {
+                    this.itemName = NbtTextComponentUtil.toFormattedString(customNameElement.getAsJsonObject());
+                }
             }
 
             // Parse minecraft:lore component
@@ -250,8 +253,12 @@ public class MinecraftTooltipGenerator implements Generator {
                 StringBuilder loreBuilder = new StringBuilder();
 
                 for (int i = 0; i < loreArray.size(); i++) {
+                    if (!loreArray.get(i).isJsonObject()) {
+                        continue;
+                    }
+
                     JsonObject loreEntry = loreArray.get(i).getAsJsonObject();
-                    String parsedLine = parseTextComponent(loreEntry);
+                    String parsedLine = NbtTextComponentUtil.toFormattedString(loreEntry);
                     loreBuilder.append(parsedLine);
                     if (i < loreArray.size() - 1) {
                         loreBuilder.append("\\n");
@@ -292,28 +299,6 @@ public class MinecraftTooltipGenerator implements Generator {
             return hexColor;
         }
 
-        private void addFormattingCode(StringBuilder result, JsonObject component, String key, ChatFormat format) {
-            if (component.has(key)) {
-                boolean isFormatted = parseBooleanValue(component.get(key));
-                if (isFormatted) {
-                    result.append("&").append(format.getCode());
-                }
-            }
-        }
-
-        private boolean parseBooleanValue(JsonElement element) {
-            if (element.isJsonPrimitive()) {
-                if (element.getAsJsonPrimitive().isBoolean()) {
-                    return element.getAsBoolean();
-                }
-                if (element.getAsJsonPrimitive().isString()) {
-                    String value = element.getAsString();
-                    return "1b".equals(value) || "true".equalsIgnoreCase(value);
-                }
-            }
-            return false;
-        }
-
         public MinecraftTooltipGenerator.Builder parseNbtJson(JsonObject nbtJson) {
             this.firstLinePadding = false;
             this.centered = false;
@@ -327,32 +312,35 @@ public class MinecraftTooltipGenerator implements Generator {
             if (nbtJson.has("components")) {
                 parseComponents(nbtJson.getAsJsonObject("components"));
             } else if (nbtJson.has("tag")) {
-                // Legacy format support
-                JsonObject tagObject = nbtJson.get("tag").getAsJsonObject();
-                if (tagObject.has("display")) {
-                    JsonObject displayObject = tagObject.get("display").getAsJsonObject();
+                // Legacy format support (pre-1.13 plain § strings and 1.13-1.20.4 JSON text component strings)
+                JsonElement tagElement = nbtJson.get("tag");
+                if (tagElement != null && tagElement.isJsonObject()) {
+                    JsonObject tagObject = tagElement.getAsJsonObject();
+                    if (tagObject.has("display") && tagObject.get("display").isJsonObject()) {
+                        JsonObject displayObject = tagObject.getAsJsonObject("display");
 
-                    // Parse Name if present
-                    if (displayObject.has("Name")) {
-                        this.itemName = displayObject.get("Name").getAsString();
-                        this.itemName = this.itemName.replace(ChatFormat.SECTION_SYMBOL, ChatFormat.AMPERSAND_SYMBOL);
-                    }
-
-                    // Parse Lore if present
-                    if (displayObject.has("Lore")) {
-                        JsonArray loreArray = displayObject.get("Lore").getAsJsonArray();
-                        StringBuilder loreBuilder = new StringBuilder();
-
-                        for (int i = 0; i < loreArray.size(); i++) {
-                            if (i > 0) {
-                                loreBuilder.append("\\n");
-                            }
-
-                            loreBuilder.append(loreArray.get(i).getAsString());
+                        // Parse Name if present
+                        if (displayObject.has("Name")) {
+                            String rawName = displayObject.get("Name").getAsString();
+                            this.itemName = NbtTextComponentUtil.parseTextValue(rawName);
                         }
 
-                        this.itemLore = loreBuilder.toString()
-                            .replaceAll(String.valueOf(ChatFormat.SECTION_SYMBOL), String.valueOf(ChatFormat.AMPERSAND_SYMBOL));
+                        // Parse Lore if present
+                        if (displayObject.has("Lore")) {
+                            JsonArray loreArray = displayObject.getAsJsonArray("Lore");
+                            StringBuilder loreBuilder = new StringBuilder();
+
+                            for (int i = 0; i < loreArray.size(); i++) {
+                                if (i > 0) {
+                                    loreBuilder.append("\\n");
+                                }
+
+                                String rawLine = loreArray.get(i).getAsString();
+                                loreBuilder.append(NbtTextComponentUtil.parseTextValue(rawLine));
+                            }
+
+                            this.itemLore = loreBuilder.toString();
+                        }
                     }
                 }
             }
@@ -369,90 +357,6 @@ public class MinecraftTooltipGenerator implements Generator {
             }
 
             return this;
-        }
-
-        private ChatFormat getColorFromComponentName(String componentColorName) {
-            return switch (componentColorName.toLowerCase()) {
-                case "black" -> ChatFormat.BLACK;
-                case "dark_blue" -> ChatFormat.DARK_BLUE;
-                case "dark_green" -> ChatFormat.DARK_GREEN;
-                case "dark_aqua" -> ChatFormat.DARK_AQUA;
-                case "dark_red" -> ChatFormat.DARK_RED;
-                case "dark_purple" -> ChatFormat.DARK_PURPLE;
-                case "gold" -> ChatFormat.GOLD;
-                case "gray" -> ChatFormat.GRAY;
-                case "dark_gray" -> ChatFormat.DARK_GRAY;
-                case "blue" -> ChatFormat.BLUE;
-                case "green" -> ChatFormat.GREEN;
-                case "aqua" -> ChatFormat.AQUA;
-                case "red" -> ChatFormat.RED;
-                case "light_purple" -> ChatFormat.LIGHT_PURPLE;
-                case "yellow" -> ChatFormat.YELLOW;
-                case "white" -> ChatFormat.WHITE;
-                default -> null;
-            };
-        }
-
-        private String parseTextComponent(JsonObject textComponent) {
-            StringBuilder result = new StringBuilder();
-            String lastColorCode = null;
-
-            if (textComponent.has("color")) {
-                String colorName = textComponent.get("color").getAsString();
-                ChatFormat colorFormat = getColorFromComponentName(colorName);
-                lastColorCode = appendColorIfNeeded(result, colorFormat, lastColorCode);
-            }
-
-            // Handle base text
-            if (textComponent.has("text")) {
-                String text = textComponent.get("text").getAsString();
-                if (!text.isEmpty()) {
-                    result.append(text);
-                }
-            }
-
-            // Handle extra components array
-            if (textComponent.has("extra")) {
-                JsonArray extraArray = textComponent.getAsJsonArray("extra");
-                for (JsonElement extraElement : extraArray) {
-                    JsonObject extraComponent = extraElement.getAsJsonObject();
-
-                    // Add color formatting if present
-                    if (extraComponent.has("color")) {
-                        String colorName = extraComponent.get("color").getAsString();
-                        ChatFormat colorFormat = getColorFromComponentName(colorName);
-                        lastColorCode = appendColorIfNeeded(result, colorFormat, lastColorCode);
-                    }
-
-                    // Add formatting codes - handle both boolean and "1b"/"0b" format
-                    addFormattingCode(result, extraComponent, "bold", ChatFormat.BOLD);
-                    addFormattingCode(result, extraComponent, "italic", ChatFormat.ITALIC);
-                    addFormattingCode(result, extraComponent, "underlined", ChatFormat.UNDERLINE);
-                    addFormattingCode(result, extraComponent, "strikethrough", ChatFormat.STRIKETHROUGH);
-                    addFormattingCode(result, extraComponent, "obfuscated", ChatFormat.OBFUSCATED);
-
-                    // Add the text content
-                    if (extraComponent.has("text")) {
-                        result.append(extraComponent.get("text").getAsString());
-                    }
-                }
-            }
-
-            return result.toString();
-        }
-
-        private String appendColorIfNeeded(StringBuilder builder, ChatFormat colorFormat, String lastColorCode) {
-            if (colorFormat == null || !colorFormat.isColor()) {
-                return lastColorCode;
-            }
-
-            String code = "&" + colorFormat.getCode();
-            if (code.equalsIgnoreCase(lastColorCode)) {
-                return lastColorCode;
-            }
-
-            builder.append(code);
-            return code;
         }
 
         private static String capitalize(String text) {

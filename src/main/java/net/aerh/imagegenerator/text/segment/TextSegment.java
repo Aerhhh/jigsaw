@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lombok.Setter;
 import net.aerh.imagegenerator.builder.ClassBuilder;
+import net.aerh.imagegenerator.impl.nbt.NbtTextComponentUtil;
 import net.aerh.imagegenerator.text.ChatFormat;
 import net.aerh.imagegenerator.text.event.ClickEvent;
 import net.aerh.imagegenerator.text.event.HoverEvent;
@@ -36,12 +37,16 @@ public final class TextSegment extends ColorSegment {
                 textSegment.setHoverEvent(HoverEvent.fromJson(jsonObject.get("hoverEvent").getAsJsonObject()));
             if (jsonObject.has("color"))
                 textSegment.setColor(ChatFormat.valueOf(jsonObject.get("color").getAsString().toUpperCase()));
-            if (jsonObject.has("obfuscated")) textSegment.setObfuscated(jsonObject.get("obfuscated").getAsBoolean());
-            if (jsonObject.has("italic")) textSegment.setItalic(jsonObject.get("italic").getAsBoolean());
-            if (jsonObject.has("bold")) textSegment.setBold(jsonObject.get("bold").getAsBoolean());
-            if (jsonObject.has("underlined")) textSegment.setUnderlined(jsonObject.get("underlined").getAsBoolean());
+            if (jsonObject.has("obfuscated"))
+                textSegment.setObfuscated(NbtTextComponentUtil.parseBooleanStrict(jsonObject.get("obfuscated")));
+            if (jsonObject.has("italic"))
+                textSegment.setItalic(NbtTextComponentUtil.parseBooleanStrict(jsonObject.get("italic")));
+            if (jsonObject.has("bold"))
+                textSegment.setBold(NbtTextComponentUtil.parseBooleanStrict(jsonObject.get("bold")));
+            if (jsonObject.has("underlined"))
+                textSegment.setUnderlined(NbtTextComponentUtil.parseBooleanStrict(jsonObject.get("underlined")));
             if (jsonObject.has("strikethrough"))
-                textSegment.setStrikethrough(jsonObject.get("strikethrough").getAsBoolean());
+                textSegment.setStrikethrough(NbtTextComponentUtil.parseBooleanStrict(jsonObject.get("strikethrough")));
 
             return textSegment;
         }

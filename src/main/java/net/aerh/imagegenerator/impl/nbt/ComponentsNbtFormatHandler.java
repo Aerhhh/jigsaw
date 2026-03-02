@@ -4,8 +4,24 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import java.util.Locale;
 
+/**
+ * Handles NBT from Minecraft 1.20.5+ (snapshot 24w09a onwards), where the legacy {@code tag}
+ * compound was replaced with structured data components.
+ * <p>
+ * Key differences from the {@code tag}-based format:
+ * <ul>
+ *   <li>Item data lives under a top-level {@code components} object</li>
+ *   <li>Lore is stored in {@code minecraft:lore} as JSON text component objects (not strings)</li>
+ *   <li>Custom name is stored in {@code minecraft:custom_name}</li>
+ *   <li>Player head textures use {@code minecraft:profile} instead of {@code SkullOwner}</li>
+ *   <li>Enchantments use {@code minecraft:enchantments} and {@code minecraft:stored_enchantments}</li>
+ *   <li>Enchantment glint can be overridden via {@code minecraft:enchantment_glint_override}</li>
+ * </ul>
+ *
+ * @see <a href="https://minecraft.wiki/w/Data_component_format">Data Component Format</a>
+ * @see <a href="https://minecraft.wiki/w/Item_format/1.20.5">Item Format (1.20.5)</a>
+ */
 public class ComponentsNbtFormatHandler implements NbtFormatHandler {
 
     @Override
@@ -41,14 +57,14 @@ public class ComponentsNbtFormatHandler implements NbtFormatHandler {
         JsonObject profile = profileElement.getAsJsonObject();
 
         if (profile.has("properties")) {
-            String texture = extractTextureFromProperties(profile.get("properties"));
+            String texture = findTextureString(profile.get("properties"));
             if (texture != null && !texture.isBlank()) {
                 return texture;
             }
         }
 
         if (profile.has("textures")) {
-            return extractTextureValue(profile.get("textures"));
+            return findTextureString(profile.get("textures"));
         }
 
         return null;
@@ -68,7 +84,7 @@ public class ComponentsNbtFormatHandler implements NbtFormatHandler {
             }
 
             JsonObject loreEntry = loreElement.getAsJsonObject();
-            String parsedLine = parseTextComponentForLength(loreEntry);
+            String parsedLine = NbtTextComponentUtil.extractVisibleText(loreEntry);
             maxLength = Math.max(maxLength, parsedLine.length());
         }
 
@@ -76,7 +92,7 @@ public class ComponentsNbtFormatHandler implements NbtFormatHandler {
     }
 
     private boolean detectEnchanted(JsonObject components) {
-        Boolean override = parseBooleanFromElement(components.get("minecraft:enchantment_glint_override"));
+        Boolean override = NbtTextComponentUtil.parseBoolean(components.get("minecraft:enchantment_glint_override"));
         if (override != null) {
             return override;
         }
@@ -115,153 +131,59 @@ public class ComponentsNbtFormatHandler implements NbtFormatHandler {
         return false;
     }
 
-    private Boolean parseBooleanFromElement(JsonElement element) {
-        if (element == null || !element.isJsonPrimitive()) {
+    /**
+     * Recursively searches a JSON element tree for a texture string value.
+     * Handles the variety of profile/texture structures Minecraft uses:
+     * arrays of property objects, nested "textures" keys, and direct string values.
+     * Looks for keys named "value", "Value", or "url" on objects, and recurses into
+     * arrays and nested "textures" keys.
+     */
+    private String findTextureString(JsonElement element) {
+        if (element == null) {
             return null;
         }
 
-        if (element.getAsJsonPrimitive().isBoolean()) {
-            return element.getAsBoolean();
+        if (element.isJsonPrimitive()) {
+            return element.getAsString();
         }
 
-        if (element.getAsJsonPrimitive().isNumber()) {
-            return element.getAsNumber().intValue() != 0;
-        }
-
-        if (element.getAsJsonPrimitive().isString()) {
-            String raw = element.getAsString().trim().toLowerCase(Locale.ROOT);
-            if (raw.equals("true") || raw.equals("1") || raw.equals("1b")) {
-                return true;
+        if (element.isJsonArray()) {
+            for (JsonElement item : element.getAsJsonArray()) {
+                String result = findTextureString(item);
+                if (result != null && !result.isBlank()) {
+                    return result;
+                }
             }
-            if (raw.equals("false") || raw.equals("0") || raw.equals("0b")) {
-                return false;
+            return null;
+        }
+
+        if (element.isJsonObject()) {
+            JsonObject obj = element.getAsJsonObject();
+
+            // Skip non-texture properties (e.g. {name: "other", value: "..."})
+            if (obj.has("name") && !"textures".equalsIgnoreCase(obj.get("name").getAsString())) {
+                return null;
+            }
+
+            // Check direct value keys
+            for (String key : new String[]{"value", "Value", "url"}) {
+                if (obj.has(key) && obj.get(key).isJsonPrimitive()) {
+                    return obj.get(key).getAsString();
+                }
+            }
+
+            // Recurse into nested "textures" or "properties"
+            for (String key : new String[]{"textures", "properties"}) {
+                if (obj.has(key)) {
+                    String result = findTextureString(obj.get(key));
+                    if (result != null && !result.isBlank()) {
+                        return result;
+                    }
+                }
             }
         }
 
         return null;
     }
 
-    private String extractTextureFromProperties(JsonElement propertiesElement) {
-        if (propertiesElement == null) {
-            return null;
-        }
-
-        if (propertiesElement.isJsonArray()) {
-            for (JsonElement propertyElement : propertiesElement.getAsJsonArray()) {
-                String texture = extractTextureFromProperty(propertyElement);
-                if (texture != null && !texture.isBlank()) {
-                    return texture;
-                }
-            }
-        } else if (propertiesElement.isJsonObject()) {
-            JsonObject propertiesObject = propertiesElement.getAsJsonObject();
-            if (propertiesObject.has("textures")) {
-                return extractTextureValue(propertiesObject.get("textures"));
-            }
-        } else if (propertiesElement.isJsonPrimitive()) {
-            return propertiesElement.getAsString();
-        }
-
-        return null;
-    }
-
-    private String extractTextureFromProperty(JsonElement propertyElement) {
-        if (propertyElement == null || !propertyElement.isJsonObject()) {
-            return null;
-        }
-
-        JsonObject property = propertyElement.getAsJsonObject();
-        boolean texturesProperty = !property.has("name") || "textures".equalsIgnoreCase(property.get("name").getAsString());
-        if (!texturesProperty) {
-            return null;
-        }
-
-        if (property.has("value")) {
-            return property.get("value").getAsString();
-        }
-
-        if (property.has("Value")) {
-            return property.get("Value").getAsString();
-        }
-
-        if (property.has("textures")) {
-            return extractTextureValue(property.get("textures"));
-        }
-
-        if (property.has("url")) {
-            return property.get("url").getAsString();
-        }
-
-        return null;
-    }
-
-    private String extractTextureValue(JsonElement texturesElement) {
-        if (texturesElement == null) {
-            return null;
-        }
-
-        if (texturesElement.isJsonArray()) {
-            for (JsonElement element : texturesElement.getAsJsonArray()) {
-                String texture = extractTextureValue(element);
-                if (texture != null && !texture.isBlank()) {
-                    return texture;
-                }
-            }
-
-            return null;
-        }
-
-        if (texturesElement.isJsonObject()) {
-            JsonObject textureObject = texturesElement.getAsJsonObject();
-            if (textureObject.has("value")) {
-                return textureObject.get("value").getAsString();
-            }
-
-            if (textureObject.has("Value")) {
-                return textureObject.get("Value").getAsString();
-            }
-
-            if (textureObject.has("url")) {
-                return textureObject.get("url").getAsString();
-            }
-
-            if (textureObject.has("textures")) {
-                String nested = extractTextureValue(textureObject.get("textures"));
-                if (nested != null && !nested.isBlank()) {
-                    return nested;
-                }
-            }
-        } else if (texturesElement.isJsonPrimitive()) {
-            return texturesElement.getAsString();
-        }
-
-        return null;
-    }
-
-    private String parseTextComponentForLength(JsonObject textComponent) {
-        StringBuilder result = new StringBuilder();
-
-        if (textComponent.has("text")) {
-            String text = textComponent.get("text").getAsString();
-            if (!text.isEmpty()) {
-                result.append(text);
-            }
-        }
-
-        if (textComponent.has("extra")) {
-            JsonArray extraArray = textComponent.getAsJsonArray("extra");
-            for (JsonElement extraElement : extraArray) {
-                if (!extraElement.isJsonObject()) {
-                    continue;
-                }
-
-                JsonObject extraComponent = extraElement.getAsJsonObject();
-                if (extraComponent.has("text")) {
-                    result.append(extraComponent.get("text").getAsString());
-                }
-            }
-        }
-
-        return result.toString();
-    }
 }
