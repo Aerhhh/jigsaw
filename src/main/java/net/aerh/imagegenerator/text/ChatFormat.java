@@ -73,7 +73,7 @@ public enum ChatFormat {
      */
     public static @Nullable ChatFormat of(@NotNull String name) {
         return Arrays.stream(values())
-            .filter(format -> Objects.equals(format.name(), name))
+            .filter(format -> format.name().equalsIgnoreCase(name))
             .findFirst()
             .orElse(null);
     }
