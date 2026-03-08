@@ -93,7 +93,7 @@ public class ItemRenderer {
         if (!isCommandAvailable("dotnet", "--version")) {
             throw new IllegalStateException(
                 ".NET SDK is not installed or not in PATH. " +
-                    "Please install .NET SDK 9.0+ from https://dotnet.microsoft.com/download"
+                    "Please install .NET SDK 10.0+ from https://dotnet.microsoft.com/download"
             );
         }
 
