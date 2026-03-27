@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.ToString;
 import net.aerh.imagegenerator.builder.ClassBuilder;
 import net.aerh.imagegenerator.text.ChatFormat;
+import net.aerh.imagegenerator.text.MinecraftFont;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +21,7 @@ public class ColorSegment {
 
     protected @NotNull String text;
     protected ChatFormat color = ChatFormat.GRAY;
+    protected @NotNull MinecraftFont font = MinecraftFont.DEFAULT;
     protected boolean italic, bold, underlined, obfuscated, strikethrough;
 
     public ColorSegment(@NotNull String text) {
@@ -79,6 +81,12 @@ public class ColorSegment {
                     ChatFormat color = Objects.requireNonNull(ChatFormat.of(peek));
 
                     switch (color) {
+                        case FONT_GALACTIC:
+                            currentObject.setFont(MinecraftFont.GALACTIC);
+                            break;
+                        case FONT_ILLAGERALT:
+                            currentObject.setFont(MinecraftFont.ILLAGERALT);
+                            break;
                         case OBFUSCATED:
                             currentObject.setObfuscated(true);
                             break;
@@ -97,6 +105,7 @@ public class ColorSegment {
                         case RESET:
                             // Reset everything.
                             currentObject.setColor(ChatFormat.GRAY);
+                            currentObject.setFont(MinecraftFont.DEFAULT);
                             currentObject.setObfuscated(false);
                             currentObject.setBold(false);
                             currentObject.setItalic(false);
@@ -144,6 +153,7 @@ public class ColorSegment {
         object.addProperty("text", this.getText());
         this.getColor().ifPresent(color -> object.addProperty("color", color.toJsonString()));
 
+        if (this.font != MinecraftFont.DEFAULT) object.addProperty("font", this.font.getResourceLocation());
         if (this.isItalic()) object.addProperty("italic", true);
         if (this.isBold()) object.addProperty("bold", true);
         if (this.isUnderlined()) object.addProperty("underlined", true);
@@ -200,6 +210,7 @@ public class ColorSegment {
     public static class Builder implements ClassBuilder<ColorSegment> {
         protected String text = "";
         protected ChatFormat color = ChatFormat.GRAY;
+        protected MinecraftFont font = MinecraftFont.DEFAULT;
         protected boolean italic, bold, underlined, obfuscated, strikethrough;
 
         public Builder isBold() {
@@ -252,6 +263,11 @@ public class ColorSegment {
             return this;
         }
 
+        public Builder withFont(@NotNull MinecraftFont font) {
+            this.font = font;
+            return this;
+        }
+
         public Builder withText(@NotNull String text) {
             this.text = text;
             return this;
@@ -261,6 +277,7 @@ public class ColorSegment {
         public @NotNull ColorSegment build() {
             ColorSegment colorSegment = new ColorSegment(this.text);
             colorSegment.setColor(this.color);
+            colorSegment.setFont(this.font);
             colorSegment.setObfuscated(this.obfuscated);
             colorSegment.setItalic(this.italic);
             colorSegment.setBold(this.bold);

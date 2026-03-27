@@ -297,7 +297,7 @@ public class MinecraftTooltip {
     private int calculateLineWidth(Graphics2D graphics, LineSegment line) {
         int lineWidth = 0;
         for (ColorSegment segment : line.getSegments()) {
-            Font baseFont = MinecraftFonts.getFont(segment.isBold(), segment.isItalic());
+            Font baseFont = MinecraftFonts.getFont(segment.getFont(), segment.isBold(), segment.isItalic());
             Font font = scaleFactor > 1 ? baseFont.deriveFont(baseFont.getSize2D() * scaleFactor) : baseFont;
             graphics.setFont(font);
             FontMetrics metrics = graphics.getFontMetrics(font);
@@ -396,7 +396,7 @@ public class MinecraftTooltip {
      * @param colorSegment The {@link ColorSegment} containing formatted text.
      */
     private void drawString(Graphics2D graphics, @NotNull ColorSegment colorSegment) {
-        Font baseFont = MinecraftFonts.getFont(colorSegment.isBold(), colorSegment.isItalic());
+        Font baseFont = MinecraftFonts.getFont(colorSegment.getFont(), colorSegment.isBold(), colorSegment.isItalic());
         this.currentFont = scaleFactor > 1 ? baseFont.deriveFont(baseFont.getSize2D() * scaleFactor) : baseFont;
         this.currentColor = colorSegment.getColor().orElse(ChatFormat.GRAY);
         graphics.setFont(this.currentFont);
