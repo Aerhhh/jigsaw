@@ -71,10 +71,15 @@ public class ColorSegment {
 
                 if (ChatFormat.isValid(peek)) {
                     i += 1; // if valid
+
+                    // Preserve the current font before creating a new segment
+                    MinecraftFont currentFont = currentObject.getFont();
+
                     if (!text.isEmpty()) {
                         currentObject.setText(text.toString()); // create a new text object
                         builder.withSegments(currentObject); // append the current object.
                         currentObject = segmentSupplier.get(); // reset the current object.
+                        currentObject.setFont(currentFont); // carry forward the font
                         text.setLength(0); // reset the buffer
                     }
 
@@ -114,8 +119,10 @@ public class ColorSegment {
                             break;
                         default:
                             // emulate Minecraft's behavior of dropping styles that do not yet have an object.
+                            currentFont = currentObject.getFont(); // capture font before reset
                             currentObject = segmentSupplier.get();
                             currentObject.setColor(color);
+                            currentObject.setFont(currentFont); // preserve the active font
                             break;
                     }
                 } else {
