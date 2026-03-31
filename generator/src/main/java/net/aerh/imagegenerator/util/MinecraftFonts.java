@@ -17,7 +17,7 @@ public class MinecraftFonts {
 
     public static final int REGULAR = 0;
 
-    private static final float DEFAULT_SIZE = 20.0f;
+    private static final float DEFAULT_SIZE = 15.5f;
     private static final Font UNIFONT;
     private static final Font UNIFONT_UPPER;
     private static final Font GALACTIC;
@@ -48,10 +48,10 @@ public class MinecraftFonts {
         }
 
         Object[][] fontConfigs = {
-            {"Regular", "/minecraft/assets/fonts/Minecraft-Regular.otf", 15.5f},
-            {"Bold", "/minecraft/assets/fonts/Minecraft-Bold.otf", 15.5f},
-            {"Italic", "/minecraft/assets/fonts/Minecraft-Italic.otf", 15.5f},
-            {"BoldItalic", "/minecraft/assets/fonts/Minecraft-BoldItalic.otf", 15.5f}
+            {"Regular", "/minecraft/assets/fonts/Minecraft-Regular.otf", DEFAULT_SIZE},
+            {"Bold", "/minecraft/assets/fonts/Minecraft-Bold.otf", DEFAULT_SIZE},
+            {"Italic", "/minecraft/assets/fonts/Minecraft-Italic.otf", DEFAULT_SIZE},
+            {"BoldItalic", "/minecraft/assets/fonts/Minecraft-BoldItalic.otf", DEFAULT_SIZE}
         };
 
         for (Object[] config : fontConfigs) {
