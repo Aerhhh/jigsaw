@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.aerh.imagegenerator.builder.ClassBuilder;
 import net.aerh.imagegenerator.text.ChatFormat;
+import net.aerh.imagegenerator.text.MinecraftFont;
 import net.aerh.imagegenerator.text.segment.ColorSegment;
 import net.aerh.imagegenerator.text.segment.LineSegment;
 import net.aerh.imagegenerator.util.MinecraftFonts;
@@ -37,6 +38,7 @@ public class MinecraftTooltip {
     public static final Range<Integer> LINE_LENGTH = Range.between(1, 128);
 
     private static final int DEFAULT_PIXEL_SIZE = 2;
+    private static final double APRIL_FOOLS_SWAP_CHANCE = 0.05;
     private static final int STRIKETHROUGH_OFFSET = -8;
     private static final int UNDERLINE_OFFSET = 2;
 
@@ -82,6 +84,7 @@ public class MinecraftTooltip {
     private final boolean centeredText;
     @Getter
     private final int scaleFactor;
+    private final boolean aprilFools;
 
     // Scaled values based on scale factor
     private final int pixelSize;
@@ -117,8 +120,9 @@ public class MinecraftTooltip {
      * @param frameDelayMs        The delay in milliseconds between animation frames.
      * @param animationFrameCount The number of frames to generate for the animation.
      * @param scaleFactor         The scale factor to apply to all pixel sizes.
+     * @param aprilFools          Whether to randomly swap characters to alternate fonts.
      */
-    private MinecraftTooltip(List<LineSegment> lines, ChatFormat defaultColor, int alpha, int padding, boolean firstLinePadding, boolean renderBorder, boolean centeredText, int frameDelayMs, int animationFrameCount, int scaleFactor) {
+    private MinecraftTooltip(List<LineSegment> lines, ChatFormat defaultColor, int alpha, int padding, boolean firstLinePadding, boolean renderBorder, boolean centeredText, int frameDelayMs, int animationFrameCount, int scaleFactor, boolean aprilFools) {
         this.lines = lines;
         this.currentColor = defaultColor;
         this.alpha = alpha;
@@ -129,6 +133,7 @@ public class MinecraftTooltip {
         this.frameDelayMs = frameDelayMs;
         this.animationFrameCount = animationFrameCount;
         this.scaleFactor = scaleFactor;
+        this.aprilFools = aprilFools;
 
         this.pixelSize = DEFAULT_PIXEL_SIZE * scaleFactor;
         this.startXY = pixelSize * 5;
@@ -450,6 +455,31 @@ public class MinecraftTooltip {
                 continue;
             }
 
+            if (aprilFools && Character.isLetterOrDigit(codePoint) && ThreadLocalRandom.current().nextDouble() < APRIL_FOOLS_SWAP_CHANCE) {
+                // Flush any pending subWord before swapping font
+                if (!subWord.isEmpty()) {
+                    drawSubWord(graphics, subWord.toString(), colorSegment, metrics);
+                    subWord.setLength(0);
+                }
+
+                // Randomly pick Galactic or Illageralt
+                MinecraftFont altFont = ThreadLocalRandom.current().nextBoolean() ? MinecraftFont.GALACTIC : MinecraftFont.ILLAGERALT;
+                Font swappedFont = MinecraftFonts.getFont(altFont, colorSegment.isBold(), colorSegment.isItalic());
+                Font scaledSwapped = scaleFactor > 1 ? swappedFont.deriveFont(swappedFont.getSize2D() * scaleFactor) : swappedFont;
+
+                graphics.setFont(scaledSwapped);
+                FontMetrics swappedMetrics = graphics.getFontMetrics(scaledSwapped);
+                int width = swappedMetrics.stringWidth(charStr);
+
+                drawTextWithEffects(graphics, charStr, colorSegment, width);
+                this.locationX += width;
+
+                // Restore the original font
+                graphics.setFont(this.currentFont);
+                i += charCount;
+                continue;
+            }
+
             subWord.append(charStr);
             i += charCount;
         }
@@ -677,6 +707,7 @@ public class MinecraftTooltip {
         private int frameDelayMs = 50;
         private int animationFrameCount = 10;
         private int scaleFactor = 1;
+        private boolean aprilFools = false;
 
         public Builder hasFirstLinePadding() {
             return this.hasFirstLinePadding(true);
@@ -751,6 +782,11 @@ public class MinecraftTooltip {
             return this;
         }
 
+        public Builder withAprilFools(boolean aprilFools) {
+            this.aprilFools = aprilFools;
+            return this;
+        }
+
         @Override
         public @NotNull MinecraftTooltip build() {
             return new MinecraftTooltip(
@@ -763,7 +799,8 @@ public class MinecraftTooltip {
                 this.centeredText,
                 this.frameDelayMs,
                 this.animationFrameCount,
-                this.scaleFactor
+                this.scaleFactor,
+                this.aprilFools
             );
         }
     }
