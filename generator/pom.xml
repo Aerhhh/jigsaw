@@ -71,6 +71,7 @@
                         <includeOnlyProperty>^git.commit.id.abbrev</includeOnlyProperty>
                         <includeOnlyProperty>^git.branch</includeOnlyProperty>
                         <includeOnlyProperty>^git.commit.time</includeOnlyProperty>
+                        <includeOnlyProperty>^git.build.name</includeOnlyProperty>
                     </includeOnlyProperties>
                 </configuration>
             </plugin>
