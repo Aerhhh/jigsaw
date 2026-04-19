@@ -1,0 +1,4 @@
+net.aerh.tessera.core.nbt.handler.ComponentsNbtFormatHandler
+net.aerh.tessera.core.nbt.handler.PostFlatteningNbtFormatHandler
+net.aerh.tessera.core.nbt.handler.PreFlatteningNbtFormatHandler
+net.aerh.tessera.core.nbt.handler.DefaultNbtFormatHandler

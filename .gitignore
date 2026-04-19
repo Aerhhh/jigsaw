@@ -157,3 +157,12 @@ generator/src/main/resources/minecraft/assets/fonts/Minecraft-*.otf
 
 # Tooling build artifacts
 tooling/build/
+
+# Font generation work directory
+work/
+
+# Development notes, never publish to origin
+.planning/
+.claude/
+CLAUDE.md
+docs/

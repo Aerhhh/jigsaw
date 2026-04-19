@@ -1,0 +1,76 @@
+{
+  "version": "26.1.2",
+  "files": [
+    {
+      "path": "icons/icon_16x16.png",
+      "sha1": "5ff04807c356f1beed0b86ccf659b44b9983e3fa",
+      "size": 781,
+      "url": "https://resources.download.minecraft.net/5f/5ff04807c356f1beed0b86ccf659b44b9983e3fa"
+    },
+    {
+      "path": "icons/icon_32x32.png",
+      "sha1": "af96f55a90eaf11b327f1b5f8834a051027dc506",
+      "size": 2063,
+      "url": "https://resources.download.minecraft.net/af/af96f55a90eaf11b327f1b5f8834a051027dc506"
+    },
+    {
+      "path": "icons/icon_48x48.png",
+      "sha1": "b80b6e9ff01c78c624df5429e1d3dcd3d5130834",
+      "size": 3409,
+      "url": "https://resources.download.minecraft.net/b8/b80b6e9ff01c78c624df5429e1d3dcd3d5130834"
+    },
+    {
+      "path": "icons/icon_128x128.png",
+      "sha1": "b62ca8ec10d07e6bf5ac8dae0c8c1d2e6a1e3356",
+      "size": 9101,
+      "url": "https://resources.download.minecraft.net/b6/b62ca8ec10d07e6bf5ac8dae0c8c1d2e6a1e3356"
+    },
+    {
+      "path": "icons/icon_256x256.png",
+      "sha1": "8030dd9dc315c0381d52c4782ea36c6baf6e8135",
+      "size": 19642,
+      "url": "https://resources.download.minecraft.net/80/8030dd9dc315c0381d52c4782ea36c6baf6e8135"
+    },
+    {
+      "path": "minecraft/font/include/unifont.json",
+      "sha1": "402ded0eebd448033ef415e861a17513075f80e7",
+      "size": 3993,
+      "url": "https://resources.download.minecraft.net/40/402ded0eebd448033ef415e861a17513075f80e7"
+    },
+    {
+      "path": "minecraft/font/unifont.zip",
+      "sha1": "ccd5ac4767ce0a9c71d1dd62f2dc25449789b5dd",
+      "size": 1559654,
+      "url": "https://resources.download.minecraft.net/cc/ccd5ac4767ce0a9c71d1dd62f2dc25449789b5dd"
+    },
+    {
+      "path": "minecraft/lang/en_gb.json",
+      "sha1": "696aadb7951dc58a1d716bb033a881f65b12651c",
+      "size": 521218,
+      "url": "https://resources.download.minecraft.net/69/696aadb7951dc58a1d716bb033a881f65b12651c"
+    },
+    {
+      "path": "minecraft/lang/de_de.json",
+      "sha1": "77f04a13f83e4153f4854292b19df25ba6404c71",
+      "size": 559920,
+      "url": "https://resources.download.minecraft.net/77/77f04a13f83e4153f4854292b19df25ba6404c71"
+    },
+    {
+      "path": "minecraft/lang/fr_fr.json",
+      "sha1": "b3c2891de7a10ef2c1569a80b77c0495b08a6d99",
+      "size": 572752,
+      "url": "https://resources.download.minecraft.net/b3/b3c2891de7a10ef2c1569a80b77c0495b08a6d99"
+    },
+    {
+      "path": "minecraft/lang/ja_jp.json",
+      "sha1": "f79ba4a2e777c99a9888e1d73eec31954103a14d",
+      "size": 626448,
+      "url": "https://resources.download.minecraft.net/f7/f79ba4a2e777c99a9888e1d73eec31954103a14d"
+    }
+  ],
+  "client_jar": {
+    "url": "https://piston-data.mojang.com/v1/objects/4e618f09a0c649dde3fdf829df443ce0b8831e65/client.jar",
+    "sha1": "4e618f09a0c649dde3fdf829df443ce0b8831e65",
+    "size": 38113927
+  }
+}

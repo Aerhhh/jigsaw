@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Surefire-visible logging config for tessera-testkit.
+
+  Drives two consumers:
+    1. GoldenImageAssertionTest asserts that `log.info("SSIM for {}: {}"...)` is
+       emitted by attaching a ListAppender directly to the named logger; that path
+       does not need this file, but the global binding (logback-classic) does.
+    2. The capture-baselines.yml workflow runs GoldenFixturesTest with
+       `-Dtessera.golden.update=true`; surefire captures STDOUT to the
+       *-output.txt report. Calibration greps those reports for
+       `SSIM for <id>: <value>` lines, so the root-level appender below must
+       print that pattern verbatim at INFO level.
+
+  Pattern intentionally minimal: `%msg%n` alone, no timestamps/level prefixes.
+  That makes the calibration grep regex trivial (`^SSIM for `) and sidesteps any
+  locale / timezone drift between the runner and the calibration script.
+-->
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+      Keep the per-package logger quiet by default except for the
+      GoldenImageAssertion SSIM one-liner. This prevents noisy Engine-bootstrap
+      and TesseraAssets logs from bloating surefire reports during the
+      capture-baselines workflow.
+    -->
+    <logger name="net.aerh.tessera.testkit.image.GoldenImageAssertion" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+</configuration>
