@@ -111,7 +111,7 @@ jobs:
         # 1 threw) still uploads whatever PNGs did land, making it easier to
         # triage what went wrong. The `if-no-files-found: warn` keeps the job
         # green-but-noisy if the entire capture bombed and no PNGs exist.
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tessera-golden-baselines-${{ github.event.inputs.mc_version }}-${{ github.sha }}
           path: |
@@ -129,7 +129,7 @@ jobs:
         # not need a reports tarball cluttering their download. Two-artifact
         # pattern also makes the retention policy obvious: if we ever bump the
         # baselines to 30 days we can leave the reports at 14 independently.
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: capture-surefire-reports-${{ github.event.inputs.mc_version }}-${{ github.sha }}
           path: |
