@@ -15,7 +15,7 @@ A Java library for programmatically generating Minecraft-themed images, includin
 
 ## Requirements
 
-- Java 21+
+- Java 25
 - Maven
 
 ## Installation
